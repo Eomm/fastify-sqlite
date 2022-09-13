@@ -16,6 +16,12 @@ function fastifySqlite (fastify, opts, next) {
       return next(err)
     }
 
+    if (opts.verbose === true) {
+      db.on('trace', function (trace) {
+        fastify.log.trace({ sql: trace }, 'sqlite verbose trace')
+      })
+    }
+
     decorateFastifyInstance(fastify, db, opts, next)
   })
 }

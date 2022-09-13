@@ -16,18 +16,30 @@ test('basic test', async t => {
 
 test('verbose mode', t => {
   t.plan(2)
-  const app = fastify()
-  app.register(plugin, { verbose: true })
+
+  const createSql = 'CREATE TABLE foo (id INT, txt TEXT)'
+
+  function Logger (...args) { this.args = args }
+  Logger.prototype.info = function (msg) { t.fail() }
+  Logger.prototype.error = function (msg) { t.fail() }
+  Logger.prototype.debug = function (msg) { t.fail() }
+  Logger.prototype.fatal = function (msg) { t.fail() }
+  Logger.prototype.warn = function (msg) { t.fail() }
+  Logger.prototype.trace = function (msg) { t.same(msg, { sql: createSql }) }
+  Logger.prototype.child = function () { return new Logger() }
+
+  const myLogger = new Logger()
+
+  const app = fastify({
+    logger: myLogger
+  })
+  app.register(plugin, {
+    verbose: true
+  })
   t.teardown(app.close.bind(app))
 
   app.ready()
     .then(() => {
-      const createSql = 'CREATE TABLE foo (id INT, txt TEXT)'
-
-      app.sqlite.on('trace', function (trace) {
-        t.equal(createSql, trace, 'trace event')
-      })
-
       app.sqlite.run(createSql, () => {
         t.pass('table created')
       })
