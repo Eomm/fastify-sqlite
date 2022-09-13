@@ -1,0 +1,39 @@
+{
+  "name": "fastify-sqlite",
+  "version": "0.0.1",
+  "description": "Fastify plugin to connect to a SQLite database",
+  "main": "index.js",
+  "scripts": {
+    "lint": "standard",
+    "lint:fix": "standard --fix",
+    "test": "tap test/**/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Eomm/fastify-sqlite.git"
+  },
+  "keywords": [
+    "fastify",
+    "fastify-plugin",
+    "database",
+    "in-memory",
+    "sqlite",
+    "sqlite3"
+  ],
+  "author": "Manuel Spigolon <behemoth89@gmail.com> (https://github.com/Eomm)",
+  "funding": "https://github.com/Eomm/fastify-sqlite?sponsor=1",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Eomm/fastify-sqlite/issues"
+  },
+  "homepage": "https://github.com/Eomm/fastify-sqlite#readme",
+  "devDependencies": {
+    "fastify": "^4.5.3",
+    "standard": "^17.0.0",
+    "tap": "^16.3.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^7.6.2",
+    "fastify-plugin": "^4.2.1"
+  }
+}
