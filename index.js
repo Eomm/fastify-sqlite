@@ -8,10 +8,10 @@ function fastifySqlite (fastify, opts, next) {
     ? sqlite3.verbose()
     : sqlite3
 
-  const dbName = opts.dbName || ':memory:'
-  const mode = opts.mode
+  const filename = opts.dbFile || ':memory:'
+  const mode = opts.mode || (sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_FULLMUTEX)
 
-  const db = new Sqlite.Database(dbName, mode, (err) => {
+  const db = new Sqlite.Database(filename, mode, (err) => {
     if (err) {
       return next(err)
     }
@@ -41,6 +41,8 @@ function decorateFastifyInstance (fastify, db, opts, next) {
 
     fastify.sqlite[name] = db
   }
+
+  next()
 }
 
 function close (instance, done) {
@@ -51,4 +53,6 @@ module.exports = fp(fastifySqlite, {
   name: 'fastify-sqlite',
   fastify: '^4.x'
 })
-module.exports.sqlite3 = sqlite3 // let the user access the sqlite3 mode constants eg: sqlite3.OPEN_READONLY
+
+// let the user access the sqlite3 mode constants eg: sqlite3.OPEN_READONLY
+module.exports.sqlite3 = sqlite3
