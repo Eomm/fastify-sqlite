@@ -2,6 +2,7 @@
 
 const fp = require('fastify-plugin')
 const sqlite3 = require('sqlite3')
+const { open } = require('sqlite')
 
 function fastifySqlite (fastify, opts, next) {
   const Sqlite = (opts.verbose === true)
@@ -11,10 +12,24 @@ function fastifySqlite (fastify, opts, next) {
   const filename = opts.dbFile || ':memory:'
   const mode = opts.mode || (sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_FULLMUTEX)
 
-  const db = new Sqlite.Database(filename, mode, (err) => {
-    if (err) {
+  if (opts.promiseApi === true) {
+    open({
+      filename,
+      mode,
+      driver: Sqlite.Database
+    }).then(setupDatabase, setupDatabase)
+  } else {
+    // eslint-disable-next-line
+    new Sqlite.Database(filename, mode, setupDatabase)
+  }
+
+  function setupDatabase (err) {
+    if (err && err instanceof Error) {
       return next(err)
     }
+    const db = err?.db || this
+
+    console.log({ db })
 
     if (opts.verbose === true) {
       db.on('trace', function (trace) {
@@ -23,7 +38,7 @@ function fastifySqlite (fastify, opts, next) {
     }
 
     decorateFastifyInstance(fastify, db, opts, next)
-  })
+  }
 }
 
 function decorateFastifyInstance (fastify, db, opts, next) {
