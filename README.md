@@ -40,14 +40,17 @@ main()
 
 Checkout the [sqlite3 documentation](https://github.com/TryGhost/node-sqlite3/wiki/API) to see all the available methods.
 
-_Note that Promise is not supported by the `sqlite3` module._
+Note that Promise APIs are not supported by the `sqlite3` module by default.
+By using the `promiseApi` option, the [`sqlite`](https://github.com/kriasoft/node-sqlite) wrapper will be used
+to enhance the Database instance. It has many convenient utilities such as `migration` support.
 
 ## Options
 
 You can pass the following options to the plugin:
 
 ```js
-app.register(require('fastify-sqlite'), {
+await app.register(require('fastify-sqlite'), {
+  promiseApi: true, // the DB instance supports the Promise API. Default false
   name: 'mydb', // optional decorator name. Default null
   verbose: true, // log sqlite3 queries as trace. Default false
   dbFile: ':memory:', // select the database file. Default ':memory:'
@@ -56,9 +59,7 @@ app.register(require('fastify-sqlite'), {
 })
 
 // usage WITH name option
-app.sqlite.myDb.all('SELECT * FROM myTable', (err, rows) => {
-  // do something
-})
+await app.sqlite.myDb.all('SELECT * FROM myTable')
 ```
 
 ## License
