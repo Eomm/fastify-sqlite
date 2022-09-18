@@ -12,6 +12,7 @@ test('basic test', async t => {
   await app.ready()
 
   t.ok(app.sqlite)
+  t.ok(app.sqlite.migrate)
 })
 
 test('verbose mode', async t => {

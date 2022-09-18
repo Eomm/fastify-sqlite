@@ -27,9 +27,7 @@ function fastifySqlite (fastify, opts, next) {
     if (err && err instanceof Error) {
       return next(err)
     }
-    const db = err?.db || this
-
-    console.log({ db })
+    const db = err || this
 
     if (opts.verbose === true) {
       db.on('trace', function (trace) {
@@ -67,7 +65,10 @@ function decorateFastifyInstance (fastify, db, opts, next) {
 }
 
 function close (instance, done) {
-  this.close(done)
+  const isProm = this.close(done)
+  if (isProm?.then) {
+    isProm.then(done, done)
+  }
 }
 
 module.exports = fp(fastifySqlite, {
