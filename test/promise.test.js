@@ -15,6 +15,27 @@ test('basic test', async t => {
   t.ok(app.sqlite.migrate)
 })
 
+test('promise api', async t => {
+  const app = fastify()
+  app.register(plugin, { promiseApi: true })
+  t.teardown(app.close.bind(app))
+
+  await app.ready()
+
+  await app.sqlite.migrate({
+    migrationsPath: 'test/migrations'
+  })
+
+  const johnFriends = await app.sqlite.all(`
+  SELECT * FROM Person
+    JOIN Friend ON Person.id = Friend.personId
+    JOIN Person AS FriendPerson ON Friend.friendId = FriendPerson.id
+    WHERE Person.name = 'John'
+  `)
+
+  t.equal(johnFriends.length, 3)
+})
+
 test('verbose mode', async t => {
   const createSql = 'CREATE TABLE foo (id INT, txt TEXT)'
 
