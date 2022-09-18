@@ -1,6 +1,6 @@
 {
   "name": "fastify-sqlite",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Fastify plugin to connect to a SQLite database",
   "main": "index.js",
   "scripts": {
