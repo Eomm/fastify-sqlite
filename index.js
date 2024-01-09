@@ -76,5 +76,8 @@ module.exports = fp(fastifySqlite, {
   fastify: '^4.x'
 })
 
+module.exports.default = fastifySqlite
+module.exports.fastifySqlite = fastifySqlite
+
 // let the user access the sqlite3 mode constants eg: sqlite3.OPEN_READONLY
 module.exports.sqlite3 = sqlite3
