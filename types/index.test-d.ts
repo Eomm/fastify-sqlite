@@ -1,8 +1,7 @@
 import fastify from "fastify";
 import fastifySqlite, { sqlite3 as reExportedSqlite3 } from ".";
 import { expectType } from "tsd";
-import { sqlite3 } from "sqlite3";
-import { Database } from "sqlite";
+import { sqlite3, Database } from "sqlite3";
 
 const app = fastify();
 

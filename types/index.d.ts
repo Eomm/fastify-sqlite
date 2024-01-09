@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import { sqlite3 } from "sqlite3";
-import { Database } from "sqlite";
+import { sqlite3, Database } from "sqlite3";
 
 declare module "fastify" {
   interface FastifyInstance {
