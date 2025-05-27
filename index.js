@@ -73,7 +73,7 @@ function close (instance, done) {
 
 module.exports = fp(fastifySqlite, {
   name: 'fastify-sqlite',
-  fastify: '^4.x'
+  fastify: '^5.x'
 })
 
 // let the user access the sqlite3 mode constants eg: sqlite3.OPEN_READONLY

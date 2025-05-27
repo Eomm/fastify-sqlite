@@ -7,7 +7,7 @@ const plugin = require('../index')
 test('basic test', async t => {
   const app = fastify()
   app.register(plugin, { promiseApi: true })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   await app.ready()
 
@@ -18,7 +18,7 @@ test('basic test', async t => {
 test('promise api', async t => {
   const app = fastify()
   app.register(plugin, { promiseApi: true })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   await app.ready()
 
@@ -54,16 +54,14 @@ test('verbose mode', async t => {
   }
   Logger.prototype.child = function () { return new Logger() }
 
-  const myLogger = new Logger()
-
   const app = fastify({
-    logger: myLogger
+    logger: { level: 'trace' }
   })
   app.register(plugin, {
     promiseApi: true,
     verbose: true
   })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   await app.ready()
   await app.sqlite.exec(createSql)
@@ -75,7 +73,7 @@ test('multiple register', async t => {
   const app = fastify()
   app.register(plugin, { promiseApi: true, name: 'db1' })
   app.register(plugin, { promiseApi: true, name: 'db2' })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   await app.ready()
 
@@ -87,7 +85,7 @@ test('multiple register same name error', async t => {
   const app = fastify()
   app.register(plugin, { promiseApi: true, name: 'db1' })
   app.register(plugin, { promiseApi: true, name: 'db1' })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   try {
     await app.ready()
@@ -101,7 +99,7 @@ test('multiple register error', async t => {
   const app = fastify()
   app.register(plugin, { promiseApi: true })
   app.register(plugin, { promiseApi: true })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   try {
     await app.ready()
@@ -115,11 +113,10 @@ test('sql connection error', async t => {
   const app = fastify()
   app.register(plugin, {
     promiseApi: true,
-    dbFile: 'foobar.db',
+    dbFile: 'foobar.sqlite',
     mode: plugin.sqlite3.OPEN_READONLY
   })
-  t.teardown(app.close.bind(app))
-
+  t.teardown(() => app.close())
   try {
     await app.ready()
     t.fail('should throw')

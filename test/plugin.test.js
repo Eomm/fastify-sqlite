@@ -7,7 +7,7 @@ const plugin = require('../index')
 test('basic test', async t => {
   const app = fastify()
   app.register(plugin)
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   await app.ready()
 
@@ -28,15 +28,13 @@ test('verbose mode', t => {
   Logger.prototype.trace = function (msg) { t.same(msg, { sql: createSql }) }
   Logger.prototype.child = function () { return new Logger() }
 
-  const myLogger = new Logger()
-
   const app = fastify({
-    logger: myLogger
+    logger: { level: 'trace' }
   })
   app.register(plugin, {
     verbose: true
   })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   app.ready()
     .then(() => {
@@ -50,7 +48,7 @@ test('multiple register', async t => {
   const app = fastify()
   app.register(plugin, { name: 'db1' })
   app.register(plugin, { name: 'db2' })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   await app.ready()
 
@@ -62,7 +60,7 @@ test('multiple register same name error', async t => {
   const app = fastify()
   app.register(plugin, { name: 'db1' })
   app.register(plugin, { name: 'db1' })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   try {
     await app.ready()
@@ -76,7 +74,7 @@ test('multiple register error', async t => {
   const app = fastify()
   app.register(plugin)
   app.register(plugin)
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   try {
     await app.ready()
@@ -89,10 +87,10 @@ test('multiple register error', async t => {
 test('sql connection error', async t => {
   const app = fastify()
   app.register(plugin, {
-    dbFile: 'foobar.db',
+    dbFile: 'foobar.sqlite',
     mode: plugin.sqlite3.OPEN_READONLY
   })
-  t.teardown(app.close.bind(app))
+  t.teardown(() => app.close())
 
   try {
     await app.ready()
