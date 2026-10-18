@@ -41,7 +41,7 @@
     "tsd": "^0.33.0"
   },
   "dependencies": {
-    "fastify-plugin": "^5.0.0"
+    "fastify-plugin": "^6.0.1"
   },
   "tsd": {
     "directory": "test/types"
