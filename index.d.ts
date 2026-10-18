@@ -1,4 +1,4 @@
-import type { FastifyPluginCallback, FastifyInstance } from 'fastify'
+import type { FastifyPluginCallback } from 'fastify'
 import type { DatabaseSync } from 'node:sqlite'
 
 declare module 'fastify' {
