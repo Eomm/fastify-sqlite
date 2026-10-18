@@ -1,49 +1,53 @@
 'use strict'
 
 const fp = require('fastify-plugin')
-const sqlite3 = require('sqlite3')
-const { open } = require('sqlite')
+const { DatabaseSync, constants } = require('node:sqlite')
+
+const setupVerboseTracing = require('./lib/tracing')
+const migrateSqlite = require('./lib/migrate')
+
+// Tracks whether `migrateSqlite` has already been decorated on the
+// parent instance. We use a Symbol so the guard is invisible to user
+// code and survives multiple plugin registrations (with or without
+// the `name` option).
+const kMigrateSqlite = Symbol('fastify-sqlite:migrateSqlite')
 
 function fastifySqlite (fastify, opts, next) {
-  const Sqlite = (opts.verbose === true)
-    ? sqlite3.verbose()
-    : sqlite3
-
   const filename = opts.dbFile || ':memory:'
-  const mode = opts.mode || (sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE | sqlite3.OPEN_FULLMUTEX)
+  const dbOptions = buildDatabaseOptions(opts)
 
-  if (opts.promiseApi === true) {
-    open({
-      filename,
-      mode,
-      driver: Sqlite.Database
-    }).then(setupDatabase, setupDatabase)
-  } else {
-    // eslint-disable-next-line
-    new Sqlite.Database(filename, mode, setupDatabase)
+  let db
+  try {
+    db = new DatabaseSync(filename, dbOptions)
+  } catch (err) {
+    return next(err)
   }
 
-  function setupDatabase (err) {
-    if (err && err instanceof Error) {
-      return next(err)
-    }
-    const db = err || this
-
-    if (opts.verbose === true) {
-      db.on('trace', function (trace) {
-        fastify.log.trace({ sql: trace }, 'sqlite verbose trace')
-      })
-    }
-
-    decorateFastifyInstance(fastify, db, opts, next)
+  if (opts.verbose === true) {
+    setupVerboseTracing(fastify, db)
   }
+
+  if (fastify[kMigrateSqlite] !== true) {
+    fastify.decorate('migrateSqlite', migrateSqlite)
+    fastify[kMigrateSqlite] = true
+  }
+
+  decorateFastifyInstance(fastify, db, opts, next)
+}
+
+function buildDatabaseOptions (opts) {
+  // Translate the `readOnly` boolean to the `node:sqlite` options
+  // object. The new API defaults to read-write + create-on-open.
+  if (opts.readOnly === true) {
+    return { readOnly: true }
+  }
+  return {}
 }
 
 function decorateFastifyInstance (fastify, db, opts, next) {
   fastify.addHook('onClose', close.bind(db))
 
   const name = opts.name
-
   if (!name) {
     if (fastify.sqlite) {
       return next(new Error('fastify-sqlite has been already registered'))
@@ -53,11 +57,9 @@ function decorateFastifyInstance (fastify, db, opts, next) {
     if (!fastify.sqlite) {
       fastify.decorate('sqlite', Object.create(null))
     }
-
     if (fastify.sqlite[name]) {
       return next(new Error(`Connection name [${name}] already registered`))
     }
-
     fastify.sqlite[name] = db
   }
 
@@ -65,16 +67,25 @@ function decorateFastifyInstance (fastify, db, opts, next) {
 }
 
 function close (instance, done) {
-  const isProm = this.close(done)
-  if (isProm?.then) {
-    isProm.then(done, done)
+  try {
+    this.close()
+    done()
+  } catch (err) {
+    done(err)
   }
 }
 
-module.exports = fp(fastifySqlite, {
+const plugin = fp(fastifySqlite, {
   name: 'fastify-sqlite',
-  fastify: '^4.x'
+  fastify: '^5.x'
 })
 
-// let the user access the sqlite3 mode constants eg: sqlite3.OPEN_READONLY
-module.exports.sqlite3 = sqlite3
+module.exports = plugin
+module.exports.default = plugin
+
+// Constants exposed by the built-in `node:sqlite` module.
+module.exports.constants = constants
+
+// The `DatabaseSync` class so users that want to instantiate databases
+// outside the plugin can do so without an extra `require('node:sqlite')`.
+module.exports.DatabaseSync = DatabaseSync
