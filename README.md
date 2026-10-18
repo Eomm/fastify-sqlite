@@ -1,6 +1,6 @@
 # fastify-sqlite
 
-[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+[![neostandard javascript style](https://img.shields.io/badge/code_style-neostandard-brightgreen?style=flat)](https://github.com/neostandard/neostandard)
 [![ci](https://github.com/Eomm/fastify-sqlite/actions/workflows/ci.yml/badge.svg)](https://github.com/Eomm/fastify-sqlite/actions/workflows/ci.yml)
 
 Fastify plugin to connect to a SQLite3 database.

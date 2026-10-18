@@ -4,8 +4,8 @@
   "description": "Fastify plugin to connect to a SQLite database",
   "main": "index.js",
   "scripts": {
-    "lint": "standard",
-    "lint:fix": "standard --fix",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "test": "tap test/**/*.test.js"
   },
   "repository": {
@@ -30,8 +30,9 @@
   "homepage": "https://github.com/Eomm/fastify-sqlite#readme",
   "devDependencies": {
     "fastify": "^4.5.3",
-    "standard": "^17.0.0",
-    "tap": "^16.3.0"
+    "tap": "^16.3.0",
+    "neostandard": "^0.14.0",
+    "eslint": "^10.12.0"
   },
   "dependencies": {
     "fastify-plugin": "^4.2.1",
