@@ -8,6 +8,17 @@ declare module 'fastify' {
      * the `name` option is used.
      */
     sqlite?: DatabaseSync | Record<string, DatabaseSync>
+
+    /**
+     * Run every `.sql` file in `migrationsPath` against the given
+     * `node:sqlite` `DatabaseSync` instance.
+     *
+     * @example
+     * ```ts
+     * app.migrateSqlite(app.sqlite, { migrationsPath: './migrations' })
+     * ```
+     */
+    migrateSqlite: (db: DatabaseSync, options: fastifySqlite.MigrateOptions) => string[]
   }
 }
 
@@ -31,25 +42,24 @@ declare namespace fastifySqlite {
     name?: string
 
     /**
+     * When `true`, the database is opened in read-only mode and every
+     * write statement will fail.
+     *
+     * @default false
+     */
+    readOnly?: boolean
+
+    /**
      * When `true`, every SQL statement is logged through
      * `fastify.log.trace({ sql })` for debugging.
      *
      * @default false
      */
     verbose?: boolean
-
-    /**
-     * Legacy sqlite3 numeric open-mode flags. Only `OPEN_READONLY`
-     * is honoured because the built-in `node:sqlite` always opens
-     * files in read-write mode and creates them when missing.
-     *
-     * @default undefined (read-write + create)
-     */
-    mode?: number
   }
 
   /**
-   * Options accepted by `db.migrate()`.
+   * Options accepted by `fastify.migrateSqlite(db, options)`.
    */
   interface MigrateOptions {
     /**
@@ -68,17 +78,6 @@ declare namespace fastifySqlite {
 type FastifySqlitePlugin = FastifyPluginCallback<fastifySqlite.SqlitePluginOptions>
 
 interface FastifySqliteExtras {
-  /**
-   * Legacy `sqlite3` open-mode constants, kept for backward
-   * compatibility. Access them as `fastifySqlite.sqlite3.OPEN_READONLY`.
-   */
-  sqlite3: {
-    readonly OPEN_READONLY: 1
-    readonly OPEN_READWRITE: 2
-    readonly OPEN_CREATE: 4
-    readonly OPEN_FULLMUTEX: 65536
-  }
-
   /** Constants exposed by the built-in `node:sqlite` module. */
   constants: typeof import('node:sqlite').constants
 

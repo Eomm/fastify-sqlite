@@ -13,14 +13,18 @@ const migrationsPath = path.join(__dirname, 'migrations')
 // strictly equal via `===`. For deepStrictEqual we want plain objects.
 const asRows = (rows) => rows.map((row) => ({ ...row }))
 
-test('migrate runs every .sql file once', async (t) => {
+async function setupApp (t, options = {}) {
   const app = Fastify()
   t.after(() => app.close())
-
-  app.register(plugin)
+  await app.register(plugin, options)
   await app.ready()
+  return app
+}
 
-  const ran = await app.sqlite.migrate({ migrationsPath })
+test('migrate runs every .sql file once', async (t) => {
+  const app = await setupApp(t)
+
+  const ran = app.migrateSqlite(app.sqlite, { migrationsPath })
 
   t.assert.deepStrictEqual(ran, ['001-init.sql', '002-data.sql'])
 
@@ -36,27 +40,19 @@ test('migrate runs every .sql file once', async (t) => {
 })
 
 test('migrate is idempotent', async (t) => {
-  const app = Fastify()
-  t.after(() => app.close())
+  const app = await setupApp(t)
 
-  app.register(plugin)
-  await app.ready()
-
-  const first = await app.sqlite.migrate({ migrationsPath })
-  const second = await app.sqlite.migrate({ migrationsPath })
+  const first = app.migrateSqlite(app.sqlite, { migrationsPath })
+  const second = app.migrateSqlite(app.sqlite, { migrationsPath })
 
   t.assert.deepStrictEqual(first, ['001-init.sql', '002-data.sql'])
   t.assert.deepStrictEqual(second, [], 'no migrations run a second time')
 })
 
 test('migrate skips the "-- Down" section of each file', async (t) => {
-  const app = Fastify()
-  t.after(() => app.close())
+  const app = await setupApp(t)
 
-  app.register(plugin)
-  await app.ready()
-
-  await app.sqlite.migrate({ migrationsPath })
+  app.migrateSqlite(app.sqlite, { migrationsPath })
 
   // The "Down" sections drop tables. If they had been executed, the
   // schema would be empty afterwards.
@@ -70,19 +66,16 @@ test('migrate skips the "-- Down" section of each file', async (t) => {
 })
 
 test('migrate rolls back the failing migration while keeping earlier ones committed', async (t) => {
-  const app = Fastify()
-  t.after(() => app.close())
-
   const faulty = path.join(os.tmpdir(), `fastify-sqlite-faulty-${process.pid}-${Date.now()}`)
   await fs.mkdir(faulty, { recursive: true })
   await fs.writeFile(path.join(faulty, '001-good.sql'), 'CREATE TABLE bar (id INT);')
   await fs.writeFile(path.join(faulty, '002-bad.sql'), 'THIS IS NOT VALID SQL;')
 
-  app.register(plugin)
-  await app.ready()
+  const app = await setupApp(t)
+  t.after(() => fs.rm(faulty, { recursive: true, force: true }))
 
-  await t.assert.rejects(
-    app.sqlite.migrate({ migrationsPath: faulty }),
+  t.assert.throws(
+    () => app.migrateSqlite(app.sqlite, { migrationsPath: faulty }),
     /syntax error|SQL logic error|not a valid/
   )
 
@@ -99,47 +92,40 @@ test('migrate rolls back the failing migration while keeping earlier ones commit
       .all()
   )
   t.assert.deepStrictEqual(tables, [{ name: 'bar' }])
-
-  await fs.rm(faulty, { recursive: true, force: true })
 })
 
 test('migrate throws when migrationsPath is missing', async (t) => {
-  const app = Fastify()
-  t.after(() => app.close())
+  const app = await setupApp(t)
 
-  app.register(plugin)
-  await app.ready()
-
-  await t.assert.rejects(
-    app.sqlite.migrate({}),
+  t.assert.throws(
+    () => app.migrateSqlite(app.sqlite, {}),
     /migrationsPath must be a non-empty string/
+  )
+})
+
+test('migrate throws when the first argument is not a database', async (t) => {
+  const app = await setupApp(t)
+
+  t.assert.throws(
+    () => app.migrateSqlite(null, { migrationsPath }),
+    /expects a node:sqlite DatabaseSync/
   )
 })
 
 test('migrate returns an empty array when the directory has no .sql files', async (t) => {
   const emptyDir = path.join(os.tmpdir(), `fastify-sqlite-empty-${process.pid}-${Date.now()}`)
   await fs.mkdir(emptyDir, { recursive: true })
+  const app = await setupApp(t)
+  t.after(() => fs.rm(emptyDir, { recursive: true, force: true }))
 
-  const app = Fastify()
-  t.after(() => app.close())
-
-  app.register(plugin)
-  await app.ready()
-
-  const ran = await app.sqlite.migrate({ migrationsPath: emptyDir })
+  const ran = app.migrateSqlite(app.sqlite, { migrationsPath: emptyDir })
   t.assert.deepStrictEqual(ran, [])
-
-  await fs.rm(emptyDir, { recursive: true, force: true })
 })
 
 test('joins data through the public API after migration', async (t) => {
-  const app = Fastify()
-  t.after(() => app.close())
+  const app = await setupApp(t)
 
-  app.register(plugin)
-  await app.ready()
-
-  await app.sqlite.migrate({ migrationsPath })
+  app.migrateSqlite(app.sqlite, { migrationsPath })
 
   const johnFriends = app.sqlite.prepare(`
     SELECT * FROM Person

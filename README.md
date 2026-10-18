@@ -55,10 +55,10 @@ You can pass the following options to the plugin:
 
 ```js
 await app.register(require('fastify-sqlite'), {
-  dbFile: ':memory:',         // path to the DB file. Default ':memory:'
-  name: 'mydb',               // optional decorator name. Default null
-  verbose: true,              // log every SQL statement via fastify.log.trace. Default false
-  mode: fastifySqlite.sqlite3.OPEN_READONLY // legacy sqlite3 mode flags. Default read-write + create
+  dbFile: ':memory:', // path to the DB file. Default ':memory:'
+  name: 'mydb',       // optional decorator name. Default null
+  readOnly: true,     // open the database in read-only mode. Default false
+  verbose: true       // log every SQL statement via fastify.log.trace. Default false
 })
 ```
 
@@ -68,21 +68,6 @@ When the `name` option is set, the database is exposed at `fastify.sqlite[name]`
 ```js
 await app.register(require('fastify-sqlite'), { name: 'main' })
 app.sqlite.main.prepare('SELECT 1').get()
-```
-
-### `mode`
-
-The `mode` option accepts the legacy [`sqlite3`](https://github.com/TryGhost/node-sqlite3) numeric
-flags. Only `OPEN_READONLY` is honoured by `node:sqlite` — all other flags are ignored because
-`node:sqlite` always opens files in read-write mode and creates them when missing.
-
-If you prefer a friendlier API you can just rely on the legacy constants:
-
-```js
-mode: fastifySqlite.sqlite3.OPEN_READONLY // 1
-mode: fastifySqlite.sqlite3.OPEN_READWRITE // 2
-mode: fastifySqlite.sqlite3.OPEN_CREATE // 4
-mode: fastifySqlite.sqlite3.OPEN_FULLMUTEX // 65536
 ```
 
 ## Verbose mode
@@ -99,22 +84,25 @@ Both `db.exec(sql)` and `db.prepare(sql).run() / .all() / .get() / .iterate()` a
 
 ## Migrations
 
-The plugin ships with a tiny migration helper attached to every database instance:
+The plugin decorates `fastify.migrateSqlite(db, options)`. Pass the database instance to migrate
+(typically `app.sqlite`, or `app.sqlite.mydb` when the `name` option is used) and the directory
+holding the migration files:
 
 ```js
-await app.sqlite.migrate({
+const ran = app.migrateSqlite(app.sqlite, {
   migrationsPath: './migrations'
 })
+console.log(ran) // ['001-init.sql', '002-data.sql']
 ```
 
 - Migration files must end with `.sql` and are executed in alphabetical order.
 - Each file may include a `-- Down` marker to separate the rollback section from the upgrade
   section; only the upgrade section is executed.
-- A `_migrations` table tracks which files have already run, so calling `migrate()` again
+- A `_migrations` table tracks which files have already run, so calling `migrateSqlite` again
   is a no-op.
 - Each migration runs in its own transaction. If a migration fails, only that one is rolled
   back; previously committed migrations stay committed.
-- The call returns the array of files that have been executed.
+- The call returns the array of files that have been executed (synchronously).
 
 ## TypeScript
 
@@ -129,7 +117,8 @@ import sqlitePlugin, { SqlitePluginOptions } from 'fastify-sqlite'
 const app = Fastify()
 app.register(sqlitePlugin, {
   dbFile: 'foo.db',
-  name: 'main'
+  name: 'main',
+  readOnly: false
 } satisfies SqlitePluginOptions)
 ```
 

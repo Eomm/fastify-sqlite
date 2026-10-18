@@ -213,7 +213,7 @@ test('throws when two connections share the same name', async (t) => {
   )
 })
 
-test('opens in read-only mode when OPEN_READONLY is set', async (t) => {
+test('opens in read-only mode when readOnly is true', async (t) => {
   // Pre-create a DB that we can open in read-only mode afterwards.
   const filename = await tmpFile()
   {
@@ -227,7 +227,7 @@ test('opens in read-only mode when OPEN_READONLY is set', async (t) => {
 
   app.register(plugin, {
     dbFile: filename,
-    mode: plugin.sqlite3.OPEN_READONLY
+    readOnly: true
   })
 
   await app.ready()
@@ -247,7 +247,7 @@ test('fails when the file does not exist in read-only mode', async (t) => {
 
   app.register(plugin, {
     dbFile: await tmpFile(),
-    mode: plugin.sqlite3.OPEN_READONLY
+    readOnly: true
   })
 
   await t.assert.rejects(
@@ -305,9 +305,13 @@ test('exposes node:sqlite constants and DatabaseSync on the plugin', (t) => {
   t.assert.strictEqual(plugin.DatabaseSync.name, 'DatabaseSync')
 })
 
-test('exposes legacy sqlite3 mode flags on plugin.sqlite3', (t) => {
-  t.assert.strictEqual(plugin.sqlite3.OPEN_READONLY, 1)
-  t.assert.strictEqual(plugin.sqlite3.OPEN_READWRITE, 2)
-  t.assert.strictEqual(plugin.sqlite3.OPEN_CREATE, 4)
-  t.assert.strictEqual(plugin.sqlite3.OPEN_FULLMUTEX, 65536)
+test('decorates fastify with migrateSqlite', async (t) => {
+  const app = Fastify()
+  t.after(() => app.close())
+
+  app.register(plugin)
+  await app.ready()
+
+  t.assert.strictEqual(typeof app.migrateSqlite, 'function')
+  t.assert.strictEqual(app.migrateSqlite, require('../lib/migrate').migrateSqlite)
 })
