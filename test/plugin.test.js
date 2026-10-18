@@ -49,7 +49,13 @@ test('opens the configured file when dbFile is provided', async (t) => {
   app.register(plugin, { dbFile: filename })
   await app.ready()
 
-  t.assert.strictEqual(app.sqlite.location(), filename)
+  // `node:sqlite` returns the real path (with symlinks resolved),
+  // which on macOS differs from `os.tmpdir()` because the latter
+  // is a symlink under `/var/folders` -> `/private/var/folders`.
+  t.assert.strictEqual(
+    await fs.realpath(app.sqlite.location()),
+    await fs.realpath(filename)
+  )
 })
 
 test('runs a basic query through prepare/all', async (t) => {
