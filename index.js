@@ -5,6 +5,8 @@ const fs = require('node:fs/promises')
 const path = require('node:path')
 const { DatabaseSync, constants } = require('node:sqlite')
 
+const setupVerboseTracing = require('./lib/tracing')
+
 // Legacy sqlite3 mode constants, kept so existing users that read
 // `fastifySqlite.sqlite3.OPEN_READONLY` keep working. Only the
 // `OPEN_READONLY` flag is actually honored because `node:sqlite` always
@@ -49,56 +51,6 @@ function buildDatabaseOptions (opts) {
     }
   }
   return {}
-}
-
-function setupVerboseTracing (fastify, db) {
-  // Wrap `exec` so single-shot SQL strings are logged too.
-  const originalExec = db.exec.bind(db)
-  db.exec = function (sql) {
-    fastify.log.trace({ sql }, 'sqlite verbose trace')
-    return originalExec(sql)
-  }
-
-  // Wrap `prepare` so every prepared statement logs on execution,
-  // matching the old sqlite3 `trace` event behaviour.
-  const originalPrepare = db.prepare.bind(db)
-  db.prepare = function (sql) {
-    const stmt = originalPrepare(sql)
-    return wrapStatement(stmt, fastify)
-  }
-}
-
-function wrapStatement (stmt, fastify) {
-  const sql = stmt.sourceSQL
-  const logTrace = () => {
-    fastify.log.trace({ sql }, 'sqlite verbose trace')
-  }
-
-  const run = stmt.run.bind(stmt)
-  stmt.run = function (...args) {
-    logTrace()
-    return run(...args)
-  }
-
-  const all = stmt.all.bind(stmt)
-  stmt.all = function (...args) {
-    logTrace()
-    return all(...args)
-  }
-
-  const get = stmt.get.bind(stmt)
-  stmt.get = function (...args) {
-    logTrace()
-    return get(...args)
-  }
-
-  const iterate = stmt.iterate.bind(stmt)
-  stmt.iterate = function (...args) {
-    logTrace()
-    return iterate(...args)
-  }
-
-  return stmt
 }
 
 async function migrate ({ migrationsPath } = {}) {
