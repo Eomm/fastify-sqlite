@@ -223,7 +223,13 @@ test('opens in read-only mode when readOnly is true', async (t) => {
   }
 
   const app = Fastify()
-  t.after(() => app.close())
+  // Close the app first so the read-only database releases its
+  // lock on the file, then remove it. On Windows removing the file
+  // while the connection is still open fails with EBUSY.
+  t.after(async () => {
+    await app.close()
+    await fs.rm(filename, { force: true })
+  })
 
   app.register(plugin, {
     dbFile: filename,
@@ -237,8 +243,6 @@ test('opens in read-only mode when readOnly is true', async (t) => {
     () => app.sqlite.prepare('INSERT INTO foo (id) VALUES (?)').run(1),
     /attempt to write a readonly database/
   )
-
-  await fs.rm(filename, { force: true })
 })
 
 test('fails when the file does not exist in read-only mode', async (t) => {
