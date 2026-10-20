@@ -12,7 +12,7 @@ on:
 
 jobs:
   test:
-    uses: fastify/workflows/.github/workflows/plugins-ci.yml@v7.1.0
+    uses: fastify/workflows/.github/workflows/plugins-ci.yml@v7.2.0
     with:
       lint: true
       node-versions: '["22", "24"]'
